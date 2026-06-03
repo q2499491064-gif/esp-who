@@ -1,0 +1,9 @@
+
+
+# Load bootloader symbols
+set confirm off
+    # Bootloader elf was not found
+set confirm on
+
+# Load application symbols
+file D:/codexproject/codex-lamp/esp-who/examples/ailamp_face_pose/build_codex_cmake/bootloader/bootloader.elf

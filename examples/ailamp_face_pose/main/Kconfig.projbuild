@@ -1,0 +1,76 @@
+menu "AILamp Preview"
+
+config AILAMP_STAGE2B_HTTP_PREVIEW
+    bool "Enable Stage 2B HTTP MJPEG preview mode"
+    default y
+    help
+        Starts the Wi-Fi HTTP MJPEG preview server instead of the face recognition app.
+
+config AILAMP_STAGE2C_FACE_HTTP_RESULT
+    bool "Enable Stage 2C face detect HTTP result mode"
+    default y
+    help
+        Starts the HTTP MJPEG preview server, a low-frequency face detection task,
+        the /result JSON endpoint, and browser-side canvas face boxes. Disable
+        this option and keep Stage 2B enabled to return to pure MJPEG preview.
+
+config AILAMP_STAGE3_FACE_POSE
+    bool "Enable Stage 3 face landmarks and head pose"
+    default y
+    depends on AILAMP_STAGE2C_FACE_HTTP_RESULT
+    help
+        Extends Stage 2C /result and the browser overlay with ESP-WHO detector
+        keypoints and lightweight pitch/yaw/roll estimation. Disable this option
+        to return to Stage 2C box-only results.
+
+config AILAMP_STAGE4_POSE_FILTER
+    bool "Enable Stage 4 browser result loop and pose filter"
+    default y
+    depends on AILAMP_STAGE3_FACE_POSE
+    help
+        Extends Stage 3 with raw_pose, EMA filtered_pose, lost-face pose hold,
+        and a browser status panel that reads the same /result snapshot.
+
+config AILAMP_WIFI_SSID
+    string "Wi-Fi SSID for HTTP preview"
+    default ""
+    help
+        Wi-Fi network name used by the Stage 2B HTTP preview mode.
+
+config AILAMP_WIFI_PASSWORD
+    string "Wi-Fi password for HTTP preview"
+    default ""
+    help
+        Wi-Fi password used by the Stage 2B HTTP preview mode.
+
+config AILAMP_STREAM_TARGET_FPS
+    int "Stage 4D MJPEG stream target FPS"
+    default 8
+    range 1 30
+
+config AILAMP_FACE_DETECT_INTERVAL_MS
+    int "Stage 4D face detect interval in ms"
+    default 200
+    range 50 2000
+
+config AILAMP_RESULT_HOLD_MS
+    int "Stage 4D result hold time in ms"
+    default 800
+    range 0 5000
+
+config AILAMP_RESULT_LOST_MAX
+    int "Stage 4D lost frames before clearing result"
+    default 5
+    range 0 100
+
+config AILAMP_LOG_PERIOD_MS
+    int "Stage 4D periodic log interval in ms"
+    default 1000
+    range 200 10000
+
+config AILAMP_MIN_FACE_SCORE
+    int "Stage 4D minimum face score percent"
+    default 55
+    range 1 100
+
+endmenu
