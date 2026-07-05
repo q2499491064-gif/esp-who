@@ -2,7 +2,7 @@ set(include_dirs    .
                     who_uvc_cam)
 set(src_dirs who_uvc_cam)
 
-set(requires esp_timer esp-dl esp_lcd who_usb usb_host_uvc)
+set(requires esp_timer esp-dl esp_lcd who_usb usb_host_uvc esp32-camera)
 
 set(bsp_components esp32_s3_eye espressif__esp32_s3_eye
                    esp32_s3_eye_noglib espressif__esp32_s3_eye_noglib

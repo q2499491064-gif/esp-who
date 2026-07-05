@@ -79,6 +79,7 @@ struct FaceBox {
 
 struct LatestFaceResult {
     bool valid;
+    uint32_t timestamp_ms;
     int frame_width;
     int frame_height;
     int face_count;
@@ -143,8 +144,10 @@ static bool ensure_jpeg_copy_capacity(size_t required)
 
 static void publish_result(const LatestFaceResult &result)
 {
+    LatestFaceResult publish = result;
+    publish.timestamp_ms = static_cast<uint32_t>(esp_timer_get_time() / 1000);
     xSemaphoreTake(s_result_mutex, portMAX_DELAY);
-    s_latest_result = result;
+    s_latest_result = publish;
     xSemaphoreGive(s_result_mutex);
 }
 
@@ -572,6 +575,69 @@ void face_http_result_summary(uint32_t *frame_id, int *face_count, int *inferenc
     if (inference_ms != nullptr) {
         *inference_ms = result.inference_ms;
     }
+}
+
+bool face_http_result_get_snapshot(face_http_snapshot_t *out)
+{
+    if (out == nullptr || s_result_mutex == nullptr) {
+        return false;
+    }
+
+    LatestFaceResult result = {};
+    xSemaphoreTake(s_result_mutex, portMAX_DELAY);
+    result = s_latest_result;
+    xSemaphoreGive(s_result_mutex);
+
+    out->valid = result.valid;
+    out->timestamp_ms = result.timestamp_ms;
+    out->frame_id = result.frame_id;
+    out->frame_width = result.frame_width;
+    out->frame_height = result.frame_height;
+    out->face_count = result.face_count;
+    out->actual_face_count = result.actual_face_count;
+    out->display_face_count = result.display_face_count;
+    out->tracking_state = result.tracking_state != nullptr ? result.tracking_state : "lost";
+    out->pitch = result.raw_pose.valid ? result.raw_pose.pitch : 0.0f;
+    out->yaw = result.raw_pose.valid ? result.raw_pose.yaw : 0.0f;
+    out->roll = result.raw_pose.valid ? result.raw_pose.roll : 0.0f;
+    out->filtered_pitch = result.filtered_pose.valid ? result.filtered_pose.pitch : 0.0f;
+    out->filtered_yaw = result.filtered_pose.valid ? result.filtered_pose.yaw : 0.0f;
+    out->filtered_roll = result.filtered_pose.valid ? result.filtered_pose.roll : 0.0f;
+    out->face_score = result.face_count > 0 ? result.faces[0].score : 0.0f;
+    if (result.face_count > 0 && result.frame_width > 0 && result.frame_height > 0) {
+        out->face_center_x_norm =
+            (static_cast<float>(result.faces[0].x) + static_cast<float>(result.faces[0].w) * 0.5f) /
+            static_cast<float>(result.frame_width);
+        out->face_center_y_norm =
+            (static_cast<float>(result.faces[0].y) + static_cast<float>(result.faces[0].h) * 0.5f) /
+            static_cast<float>(result.frame_height);
+    } else {
+        out->face_center_x_norm = 0.5f;
+        out->face_center_y_norm = 0.5f;
+    }
+    out->inference_ms = result.inference_ms;
+    out->hit_rate = static_cast<float>(result.face_hit_rate) / 100.0f;
+    out->pose_valid = result.raw_pose.valid;
+    out->filtered_pose_valid = result.filtered_pose.valid;
+    out->overlay_face_count = std::min(result.face_count, FACE_HTTP_SNAPSHOT_MAX_FACES);
+    for (int i = 0; i < out->overlay_face_count; i++) {
+        const auto &face = result.faces[i];
+        auto &snapshot = out->faces[i];
+        snapshot.x1 = face.x;
+        snapshot.y1 = face.y;
+        snapshot.x2 = face.x + face.w;
+        snapshot.y2 = face.y + face.h;
+        snapshot.w = face.w;
+        snapshot.h = face.h;
+        snapshot.score = face.score;
+        snapshot.landmarks_valid = face.landmarks.valid;
+        snapshot.landmarks.left_eye = {face.landmarks.left_eye_x, face.landmarks.left_eye_y};
+        snapshot.landmarks.right_eye = {face.landmarks.right_eye_x, face.landmarks.right_eye_y};
+        snapshot.landmarks.nose = {face.landmarks.nose_x, face.landmarks.nose_y};
+        snapshot.landmarks.left_mouth = {face.landmarks.left_mouth_x, face.landmarks.left_mouth_y};
+        snapshot.landmarks.right_mouth = {face.landmarks.right_mouth_x, face.landmarks.right_mouth_y};
+    }
+    return result.valid;
 }
 
 int face_http_result_json(char *buf, size_t buf_size)

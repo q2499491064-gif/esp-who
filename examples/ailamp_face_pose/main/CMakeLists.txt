@@ -16,6 +16,8 @@ set(requires who_spiflash_fatfs
 
 idf_component_register(SRC_DIRS ${src_dirs} INCLUDE_DIRS ${include_dirs} REQUIRES ${requires})
 
+target_sources(${COMPONENT_LIB} PRIVATE control_policy.cpp led_mixer.cpp led_output.cpp)
+
 
 
 

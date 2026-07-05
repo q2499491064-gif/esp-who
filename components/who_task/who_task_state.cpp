@@ -74,8 +74,12 @@ void WhoTaskState::print_task_status()
                m_task_state[task_status_array[i].eCurrentState].c_str(),
                task_status_array[i].uxCurrentPriority,
                task_status_array[i].usStackHighWaterMark,
-               task_status_array[i].ulRunTimeCounter,
-               task_status_array[i].ulRunTimeCounter * 100 / total_run_time);
+ //              task_status_array[i].ulRunTimeCounter,
+           //    task_status_array[i].ulRunTimeCounter * 100 / total_run_time);
+           static_cast<unsigned long long>(task_status_array[i].ulRunTimeCounter),
+           static_cast<unsigned long long>(
+           static_cast<unsigned long long>(task_status_array[i].ulRunTimeCounter) * 100ULL / total_run_time
+));
     }
     printf("\n");
     heap_caps_free(task_status_array);

@@ -1,9 +1,12 @@
 #include "esp_camera.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "control_policy.hpp"
 #include "face_http_result.hpp"
 #include "frame_cap_pipeline.hpp"
+#include "fusion_state.hpp"
 #include "http_stream_server.hpp"
+#include "led_output.hpp"
 #include "nvs_flash.h"
 #include "range_sensor.hpp"
 #include "wifi_app.hpp"
@@ -139,11 +142,25 @@ extern "C" void app_main(void)
         preview_hold_forever();
     }
 
+    err = led_output_init();
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "LED PWM output init failed, preview continues: %s", esp_err_to_name(err));
+    }
+    led_output_task_start();
+
     err = wifi_app_start();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "[preview] stop: wifi init/connect failed");
         ESP_LOGE(TAG, "[preview] run idf.py menuconfig -> AILamp Preview -> set Wi-Fi SSID/password");
         preview_hold_forever();
+    }
+
+    if (!fusion_state_init()) {
+        ESP_LOGW(TAG, "fusion state init failed, preview continues without fusion state");
+    }
+
+    if (!control_policy_init()) {
+        ESP_LOGW(TAG, "control policy init failed, preview continues without control policy");
     }
 
     err = http_stream_server_start();
